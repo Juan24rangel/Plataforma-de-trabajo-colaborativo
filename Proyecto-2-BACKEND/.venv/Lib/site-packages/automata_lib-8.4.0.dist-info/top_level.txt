@@ -1,0 +1,4 @@
+automata
+dist
+docs
+tests
