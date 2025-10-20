@@ -76,10 +76,3 @@ Siguientes pasos recomendados
       - GET /api/calendar/status/     (consulta si el usuario está conectado)
    - Requiere añadir las dependencias: google-auth, google-auth-oauthlib, google-api-python-client (ya agregadas a requirements.txt)
 
-Si quieres que continúe, puedo:
-- Pulir UI (formularios, validaciones, iconos, mobile-first)
-- Implementar permisos y roles
-- Generar tests y endpoints documentados con OpenAPI/Swagger
-
----
-Generado automáticamente por el asistente, puedo ampliar cualquier sección bajo demanda.
