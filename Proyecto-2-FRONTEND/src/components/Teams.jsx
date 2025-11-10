@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import DocumentsUpload from './DocumentsUpload';
 import TeamCalendar from './TeamCalendar';
 import EventForm from './EventForm';
@@ -77,14 +78,32 @@ export default function Teams({ initialSelectedTeam = null }) {
     } catch (err) { console.error(err); alert('No se pudo actualizar el equipo'); }
   }
 
+  // Toast notification state
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState(null);
+
+  function showToast(message, type = 'success') {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+  }
+
   async function handleDeleteTeam(teamId) {
-    if (!confirm('¿Eliminar este equipo? Esta acción no se puede deshacer.')) return;
     try {
       await api.del(`/teams/${teamId}/`);
-      // close panel if the deleted team was open
       if (selectedTeam === teamId) closeTeam();
       fetchTeams();
-    } catch (err) { console.error(err); alert('No se pudo eliminar el equipo'); }
+      showToast('Equipo eliminado exitosamente');
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error(err);
+      showToast('No se pudo eliminar el equipo', 'error');
+    }
+  }
+
+  function confirmDeleteTeam(teamId) {
+    setTeamToDelete(teamId);
+    setShowDeleteModal(true);
   }
 
   // Task edit/delete handlers (admin only)
@@ -192,19 +211,79 @@ export default function Teams({ initialSelectedTeam = null }) {
                   <div className="team-admin-controls">
                     {editingTeamId === t.id ? (
                       <form onSubmit={handleSubmitEditTeam} className="edit-team-form" onClick={(ev) => ev.stopPropagation()}>
-                        <input value={editTeamForm.nombre} onChange={e => setEditTeamForm({...editTeamForm, nombre: e.target.value})} placeholder="Nombre" />
-                        <input value={editTeamForm.descripcion} onChange={e => setEditTeamForm({...editTeamForm, descripcion: e.target.value})} placeholder="Descripción" />
-                        <button type="submit">Guardar</button>
-                        <button type="button" onClick={(ev) => { ev.stopPropagation(); handleCancelEditTeam(); }}>Cancelar</button>
+                        <div>
+                          <label className="form-row-label">Nombre del equipo</label>
+                          <input 
+                            value={editTeamForm.nombre} 
+                            onChange={e => setEditTeamForm({...editTeamForm, nombre: e.target.value})}
+                            placeholder="Ingresa el nombre del equipo"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="form-row-label">Descripción</label>
+                          <input 
+                            value={editTeamForm.descripcion} 
+                            onChange={e => setEditTeamForm({...editTeamForm, descripcion: e.target.value})}
+                            placeholder="Describe el propósito del equipo"
+                          />
+                        </div>
+                        <div className="edit-form-actions">
+                          <button type="button" className="btn btn-ghost" onClick={(ev) => { 
+                            ev.stopPropagation(); 
+                            handleCancelEditTeam(); 
+                          }}>
+                            <i className="fas fa-times" style={{marginRight: '6px'}}></i>
+                            Cancelar
+                          </button>
+                          <button type="submit" className="btn btn-primary">
+                            <i className="fas fa-save" style={{marginRight: '6px'}}></i>
+                            Guardar cambios
+                          </button>
+                        </div>
                       </form>
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', marginTop: 8 }}>
-                        <button className="btn btn-small" onClick={(ev) => { ev.stopPropagation(); handleStartEditTeam(t); }}>Editar equipo</button>
-                        <button className="btn btn-danger btn-small" onClick={(ev) => { ev.stopPropagation(); handleDeleteTeam(t.id); }}>Eliminar equipo</button>
+                        <button 
+                          className="btn btn-small" 
+                          onClick={(ev) => { 
+                            ev.stopPropagation(); 
+                            handleStartEditTeam(t); 
+                          }}
+                        >
+                          <i className="fas fa-edit" style={{marginRight: '6px'}}></i>
+                          Editar equipo
+                        </button>
+                        <button 
+                          className="btn btn-danger btn-small" 
+                          onClick={(ev) => { 
+                            ev.stopPropagation(); 
+                            confirmDeleteTeam(t.id);
+                          }}
+                        >
+                          <i className="fas fa-trash-alt" style={{marginRight: '6px'}}></i>
+                          Eliminar equipo
+                        </button>
                       </div>
                     )}
                   </div>
                 )}
+
+                {/* Toast notification */}
+                {toast.show && (
+                  <div className={`toast-notification ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`}>
+                    <i className={`fas ${toast.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}`}></i>
+                    {toast.message}
+                  </div>
+                )}
+
+                {/* Delete confirmation modal */}
+                <DeleteConfirmModal
+                  isOpen={showDeleteModal}
+                  onClose={() => setShowDeleteModal(false)}
+                  onConfirm={() => handleDeleteTeam(teamToDelete)}
+                  itemName="este equipo"
+                />
 
                 {/* copy code action */}
                 <div style={{display:'flex', gap:8, marginTop:8}} onClick={(ev) => ev.stopPropagation()}>
