@@ -93,6 +93,39 @@ body{
 
 .doc-meta a{color:var(--primary);text-decoration:none;font-weight:600}
 
+/* Team calendar styles */
+.team-calendar{padding:12px}
+.cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cal-title{font-weight:800;font-size:1rem;color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.cal-weekday{font-size:12px;text-align:center;font-weight:700;color:var(--muted)}
+.cal-day{min-height:90px;border-radius:10px;padding:8px;border:1px solid rgba(11,102,208,0.04);background:linear-gradient(180deg,#fff,#fbfdff)}
+.cal-day.empty{background:transparent;border:none}
+.cal-day-number{font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.cal-day-items{display:flex;flex-direction:column;gap:6px}
+.cal-item{padding:4px 6px;border-radius:8px;font-size:12px;display:flex;gap:6px;align-items:center}
+.cal-item-event{background:linear-gradient(90deg,rgba(59,130,246,0.12),rgba(99,102,241,0.06));color:var(--primary)}
+.cal-item-task{background:linear-gradient(90deg,rgba(16,185,129,0.08),rgba(16,185,129,0.04));color:#0f8b57}
+.cal-item-title{font-weight:600}
+.cal-more{font-size:12px;color:var(--muted)}
+
+/* file input custom */
+.file-input-label{display:inline-flex;align-items:center;gap:8px}
+.file-input-label input[type=file]{display:none}
+.file-name{font-size:0.9rem;color:var(--muted);margin-left:8px}
+
+/* form grid used by multiple components */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid > div {min-width:0}
+.form-row-label{display:block;font-weight:700;margin-bottom:6px}
+.file-preview .doc-thumb{width:72px;height:72px}
+.upload-actions .btn-primary{min-width:100px}
+
+/* small tweaks to panels used for forms */
+.form-panel{padding:12px}
+
+
+
 /* responsive */
 @media (max-width:1000px){.teams-grid,.tasks-grid{grid-template-columns:1fr}.nav-actions{display:none}.auth-forms{flex-direction:column}}
 @media (max-width:480px){.main-content{padding:12px}.navbar-modern{padding:0 12px;height:72px}}

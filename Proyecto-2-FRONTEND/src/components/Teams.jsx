@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import DocumentsUpload from './DocumentsUpload';
+import TeamCalendar from './TeamCalendar';
+import EventForm from './EventForm';
 
 // Minimal, single Teams component — clean replacement.
 export default function Teams({ initialSelectedTeam = null }) {
@@ -14,6 +17,10 @@ export default function Teams({ initialSelectedTeam = null }) {
   const [taskDocs, setTaskDocs] = useState({});
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editTaskForm, setEditTaskForm] = useState({ titulo: '', descripcion: '' });
+  // calendar / events (simple local calendar stored in backend)
+  const [eventsByTeam, setEventsByTeam] = useState({});
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => { fetchTeams(); }, []);
   useEffect(() => { if (initialSelectedTeam && teams.some(t => t.id === initialSelectedTeam)) openTeam(initialSelectedTeam); }, [initialSelectedTeam, teams]);
@@ -120,12 +127,24 @@ export default function Teams({ initialSelectedTeam = null }) {
     setSelectedTask(null);
     fetchMembers(teamId);
     fetchTasksForTeam(teamId);
+    fetchEventsForTeam(teamId);
   }
 
   function closeTeam() {
     try { window.history.pushState({}, '', '/teams'); window.dispatchEvent(new PopStateEvent('popstate')); } catch (e) {}
     setSelectedTeam(null);
     setSelectedTask(null);
+  }
+
+  // Events: fetch/create simple internal events for a team
+  async function fetchEventsForTeam(teamId) {
+    if (!teamId) return;
+    setLoadingEvents(true);
+    try {
+      const data = await api.get(`/events/?team=${teamId}`);
+      setEventsByTeam(prev => ({ ...prev, [teamId]: data || [] }));
+    } catch (e) { console.error('fetchEventsForTeam', e); }
+    setLoadingEvents(false);
   }
 
   return (
@@ -188,6 +207,14 @@ export default function Teams({ initialSelectedTeam = null }) {
                   {selectedTeam === t.id && (
                     <div style={{padding:8}}>
                       <h4>Tareas</h4>
+                      {/* Document upload area: allow uploading to the selected task or to the team */}
+                      <div style={{marginBottom:8}}>
+                        {selectedTask ? (
+                          <DocumentsUpload taskId={selectedTask.id} onUploaded={() => fetchDocsForTask(selectedTask.id)} />
+                        ) : (
+                          <DocumentsUpload teamId={t.id} onUploaded={() => fetchTasksForTeam(t.id)} />
+                        )}
+                      </div>
                       { (teamTasksByTeam[t.id] || []).length === 0 ? <p>No hay tareas</p> : (
                         (teamTasksByTeam[t.id] || []).map(task => (
                           <div key={task.id} className="task-card" onClick={() => { setSelectedTask(task); fetchDocsForTask(task.id); }}>
@@ -254,6 +281,39 @@ export default function Teams({ initialSelectedTeam = null }) {
                     <div>{task.descripcion}</div>
                   </div>
                 ))}
+              </div>
+              <div style={{marginTop:12}}>
+                <h4>Calendario (eventos del equipo)</h4>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  {loadingEvents ? <p style={{margin:0}}>Cargando eventos...</p> : <div />}
+                  <div>
+                    <button className="btn-small" onClick={() => { setShowCalendar(s => !s); }}>{showCalendar ? 'Ocultar calendario' : 'Mostrar calendario'}</button>
+                  </div>
+                </div>
+                <div className="events-list" style={{maxHeight:240, overflowY:'auto', marginTop:8}}>
+                  { (eventsByTeam[selectedTeam] || []).length === 0 ? <p className="muted">No hay eventos para este equipo</p> : (
+                    (eventsByTeam[selectedTeam] || []).sort((a,b)=> new Date(a.inicio) - new Date(b.inicio)).map(ev => (
+                      <div key={ev.id} className="event-item" style={{padding:8, borderBottom:'1px solid #eee'}}>
+                        <div style={{display:'flex', justifyContent:'space-between'}}>
+                          <strong>{ev.titulo}</strong>
+                          <div className="muted">{new Date(ev.inicio).toLocaleString()}</div>
+                        </div>
+                        <div className="muted">{ev.location || ''}</div>
+                        <div style={{marginTop:6}}>{ev.descripcion}</div>
+                      </div>
+                    ))
+                  ) }
+                </div>
+
+                {showCalendar && (
+                  <div style={{marginTop:10}}>
+                    <TeamCalendar teamId={selectedTeam} events={eventsByTeam[selectedTeam] || []} tasks={teamTasksByTeam[selectedTeam] || []} />
+                  </div>
+                )}
+
+                <div style={{marginTop:10}}>
+                  <EventForm teamId={selectedTeam} onCreated={() => fetchEventsForTeam(selectedTeam)} />
+                </div>
               </div>
             </div>
           ) : (

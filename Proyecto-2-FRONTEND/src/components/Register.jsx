@@ -48,8 +48,8 @@ const Register = ({ onRegister }) => {
   };
 
   return (
-    <div className="register-container">
-      <form onSubmit={handleSubmit} className="register-form">
+    <div className="auth-container">
+      <form onSubmit={handleSubmit} className="register-form panel">
         <h2>Registro de Usuario</h2>
         {error && <div className="error-message">{error}</div>}
         <div className="form-field">
@@ -79,7 +79,15 @@ const Register = ({ onRegister }) => {
             required
           />
         </div>
-        <button type="submit" className="btn-register">Registrarse</button>
+        <button type="submit" className="btn-register btn-primary">Registrarse</button>
+        <div className="text-center mt-3">
+          <small className="text-sm muted">¿Ya tienes cuenta?</small>
+          <button
+            type="button"
+            onClick={() => { try { window.history.pushState({}, '', '/login'); window.dispatchEvent(new PopStateEvent('popstate')); } catch (e){} }}
+            className="ml-2 text-blue-600 underline"
+          >Iniciar sesión</button>
+        </div>
       </form>
     </div>
   );

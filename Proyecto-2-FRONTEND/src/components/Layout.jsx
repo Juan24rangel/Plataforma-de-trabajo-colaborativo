@@ -28,6 +28,13 @@ const Layout = () => {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // keep `view` in sync with the path for auth routes (/login, /register)
+  useEffect(() => {
+    const p = routePath || window.location.pathname || '/';
+    if (p.startsWith('/register')) setView('register');
+    else if (p.startsWith('/login')) setView('login');
+  }, [routePath]);
+
   
 
   const handleLogin = () => setIsAuthenticated(true);
@@ -41,10 +48,33 @@ const Layout = () => {
   if (!isAuthenticated) {
     return (
       <div className="auth-container">
-        <div className="auth-forms">
-          <Login onLogin={handleLogin} />
-          <Register onRegister={handleLogin} />
-        </div>
+        {view === 'register' ? (
+          <div>
+            <Register onRegister={handleLogin} />
+            <p className="text-center mt-4">
+              ¿Ya tienes una cuenta? 
+              <button 
+                onClick={() => setView('login')} 
+                className="text-blue-600 hover:text-blue-800 ml-2 underline"
+              >
+                Iniciar Sesión
+              </button>
+            </p>
+          </div>
+        ) : (
+          <div>
+            <Login onLogin={handleLogin} />
+            <p className="text-center mt-4">
+              ¿No tienes una cuenta? 
+              <button 
+                onClick={() => setView('register')} 
+                className="text-blue-600 hover:text-blue-800 ml-2 underline"
+              >
+                Regístrate
+              </button>
+            </p>
+          </div>
+        )}
       </div>
     );
   }

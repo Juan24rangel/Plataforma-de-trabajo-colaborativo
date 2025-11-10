@@ -6,6 +6,7 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ titulo: '', descripcion: '', team: '', asignado: '' });
   const [teams, setTeams] = useState([]);
+  const [membershipsByTeam, setMembershipsByTeam] = useState({});
 
   useEffect(() => { fetchTasks(); fetchTeams(); }, []);
 
@@ -22,8 +23,22 @@ const Tasks = () => {
       // fetch only teams belonging to the current user
       const data = await api.get('/teams/mine/');
       setTeams(data);
+      // fetch memberships for those teams to determine roles
+      (data || []).forEach(t => fetchMembers(t.id));
     } catch (e) { console.error(e); }
   };
+
+  const fetchMembers = async (teamId) => {
+    try {
+      const data = await api.get(`/memberships/?team=${teamId}`);
+      setMembershipsByTeam(prev => ({ ...prev, [teamId]: data || [] }));
+    } catch (e) { console.error(e); }
+  };
+
+  function isCurrentUserAdmin(teamId) {
+    const mems = membershipsByTeam[teamId] || [];
+    return mems.some(m => m.is_current_user && m.role === 'admin');
+  }
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -51,6 +66,21 @@ const Tasks = () => {
                   <h3>{t.titulo}</h3>
                   <p>{t.descripcion}</p>
                   <div className="meta">Estado: {t.estado} • Prioridad: {t.prioridad}</div>
+                  {t.team && isCurrentUserAdmin(t.team) && (
+                    <div style={{display:'flex', gap:8, marginTop:8}}>
+                      <button onClick={async () => {
+                        const newTitle = prompt('Nuevo título', t.titulo);
+                        if (!newTitle) return;
+                        try { await api.patch(`/tasks/${t.id}/`, { titulo: newTitle }); fetchTasks(); }
+                        catch(e){ console.error(e); alert('No se pudo editar la tarea'); }
+                      }}>Editar</button>
+                      <button onClick={async () => {
+                        if (!confirm('Eliminar esta tarea?')) return;
+                        try { await api.del(`/tasks/${t.id}/`); fetchTasks(); }
+                        catch(e){ console.error(e); alert('No se pudo eliminar la tarea'); }
+                      }}>Eliminar</button>
+                    </div>
+                  )}
                 </div>
               ))
             )

@@ -9,7 +9,7 @@ from rest_framework import serializers as drf_serializers
 from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from rest_framework.decorators import action
-from .permissions import IsTeamAdmin
+from .permissions import IsTeamAdmin, RoleBasedPermission
 from django.shortcuts import get_object_or_404
 import os
 from django.conf import settings
@@ -29,7 +29,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     serializer_class = TeamSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['nombre']
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def get_queryset(self):
         # Return only teams the user belongs to or owns. Anonymous users see none.
@@ -185,6 +185,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['titulo', 'descripcion']
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def get_queryset(self):
         """
@@ -316,6 +317,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def perform_create(self, serializer):
         user = self.request.user if self.request and self.request.user.is_authenticated else None
@@ -409,11 +411,13 @@ class DocumentViewSet(viewsets.ModelViewSet):
 class ChannelViewSet(viewsets.ModelViewSet):
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def get_queryset(self):
         channel_id = self.request.query_params.get('channel')
