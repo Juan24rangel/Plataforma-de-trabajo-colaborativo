@@ -54,6 +54,8 @@ export default function Teams({ initialSelectedTeam = null }) {
     return mems.some(m => m.is_current_user && m.role === 'admin');
   }
 
+  
+
   // Team edit/delete handlers (admin only)
   function handleStartEditTeam(team) {
     setEditingTeamId(team.id);
@@ -152,6 +154,7 @@ export default function Teams({ initialSelectedTeam = null }) {
       <div className="page-header">
         <h2>Equipos</h2>
         <p className="muted">Gestiona tus equipos y colaboradores</p>
+        {/* header actions removed: crear/unirse moved to the 'Unirse a Equipo' tab */}
       </div>
 
       <div className="teams-grid">
@@ -202,6 +205,11 @@ export default function Teams({ initialSelectedTeam = null }) {
                     )}
                   </div>
                 )}
+
+                {/* copy code action */}
+                <div style={{display:'flex', gap:8, marginTop:8}} onClick={(ev) => ev.stopPropagation()}>
+                  <button className="btn-small outline" onClick={() => { navigator.clipboard && navigator.clipboard.writeText(String(t.join_id || t.id)); alert('Código copiado'); }}>Copiar código</button>
+                </div>
 
                 <div className={`team-tasks-panel ${selectedTeam===t.id ? 'open':''}`}>
                   {selectedTeam === t.id && (
