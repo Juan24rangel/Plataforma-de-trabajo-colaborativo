@@ -142,7 +142,9 @@ body{
 .profile-email{color:var(--muted);margin-top:8px;font-size:0.98rem}
 .profile-id{margin-top:8px;color:var(--muted);font-size:0.95rem}
 .profile-id .mono{font-family:monospace;background:#f1f5f9;padding:2px 6px;border-radius:6px}
-.btn-small{padding:6px 10px;border-radius:8px;border:1px solid rgba(11,102,208,0.08);background:#fff;cursor:pointer}
+.btn-small{padding:6px 10px;border-radius:8px;border:1px solid rgba(11,102,208,0.08);background:#fff;cursor:pointer;font-weight:600;font-size:0.85rem;transition:all 150ms ease}
+.btn-small:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(11,102,208,0.06);border-color:rgba(11,102,208,0.15)}
+.btn-small:active{transform:translateY(0)}
 .btn-small.outline{background:transparent;border:1px solid rgba(11,102,208,0.12);color:var(--primary)}
 
 .profile-cargo{display:inline-block;margin-top:10px;padding:8px 14px;border-radius:999px;background:linear-gradient(90deg,var(--primary),var(--primary-700));color:#fff;font-weight:800;font-size:0.95rem;box-shadow:0 6px 18px rgba(11,102,208,0.08)}
@@ -321,8 +323,14 @@ body{
 .btn{padding:8px 12px;border-radius:10px;border:1px solid rgba(11,102,208,0.06);background:#fff;cursor:pointer}
 .btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(11,34,64,0.04)}
 .btn-link{background:transparent;border:none;color:var(--primary);cursor:pointer}
-.btn-ghost{background:transparent;border:1px solid rgba(11,102,208,0.06);padding:8px 12px;border-radius:10px;cursor:pointer}
-.btn-danger{background:#fff;color:#b91c1c;border:1px solid rgba(185,28,28,0.08)}
+.btn-ghost{background:transparent;border:1px solid rgba(11,102,208,0.06);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600;transition:all 150ms ease}
+.btn-ghost:hover{background:rgba(11,102,208,0.04);border-color:rgba(11,102,208,0.12)}
+.btn-danger{background:#b91c1c;color:#fff;border:1px solid rgba(185,28,28,0.1);font-weight:600;transition:all 150ms ease}
+.btn-danger:hover{background:#a01616;filter:brightness(1.05);transform:translateY(-1px)}
+.btn-danger:active{transform:translateY(0)}
+.btn-success{background:#16a34a;color:#fff;border:1px solid rgba(22,163,74,0.1);font-weight:600;transition:all 150ms ease}
+.btn-success:hover{background:#15803d;filter:brightness(1.05);transform:translateY(-1px)}
+.btn-success:active{transform:translateY(0)}
 .chip{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(11,102,208,0.06);color:var(--primary);font-weight:700}
 
 .team-name{font-weight:800;color:var(--primary);font-size:1.05rem}
@@ -354,6 +362,11 @@ body{
 
 .task-card{background:var(--card);padding:12px;border-radius:10px;border:1px solid rgba(11,102,208,0.04);box-shadow:0 6px 18px rgba(11,34,64,0.04);transition:transform 160ms ease}
 .task-card:hover{transform:translateY(-4px)}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
 
 @media (max-width:1000px){
   .profile-grid{grid-template-columns:1fr}

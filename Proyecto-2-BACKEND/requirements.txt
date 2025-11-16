@@ -31,3 +31,17 @@ google-auth==2.24.0
 google-auth-oauthlib==1.0.0
 google-api-python-client==2.91.0
 cryptography==41.0.4
+
+# Recommended additional packages for development & deployment
+# - `python-dotenv` or `django-environ` to load environment variables from a .env file
+# - `whitenoise` to serve static files in simple deployments
+# - `psycopg2-binary` to use PostgreSQL in dev/production (optional if you use SQLite)
+# - `gunicorn` production WSGI server (optional)
+# - `django-debug-toolbar` helpful during development
+
+python-dotenv==1.0.0
+django-environ==0.10.0
+whitenoise==6.5.0
+psycopg2-binary==2.9.6
+gunicorn==22.1.0
+django-debug-toolbar==4.3.0

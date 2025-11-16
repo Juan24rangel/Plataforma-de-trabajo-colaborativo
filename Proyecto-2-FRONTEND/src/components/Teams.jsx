@@ -4,6 +4,7 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import DocumentsUpload from './DocumentsUpload';
 import TeamCalendar from './TeamCalendar';
 import EventForm from './EventForm';
+import Chat from './Chat';
 
 // Minimal, single Teams component — clean replacement.
 export default function Teams({ initialSelectedTeam = null }) {
@@ -22,9 +23,18 @@ export default function Teams({ initialSelectedTeam = null }) {
   const [eventsByTeam, setEventsByTeam] = useState({});
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('tareas'); // Nueva pestaña
 
-  useEffect(() => { fetchTeams(); }, []);
+  useEffect(() => { fetchTeams(); fetchCurrentUser(); }, []);
   useEffect(() => { if (initialSelectedTeam && teams.some(t => t.id === initialSelectedTeam)) openTeam(initialSelectedTeam); }, [initialSelectedTeam, teams]);
+
+  async function fetchCurrentUser() {
+    try {
+      const data = await api.get('/user/');
+      setCurrentUser(data);
+    } catch (e) { console.error('fetchCurrentUser', e); }
+  }
 
   async function fetchTeams() {
     setLoading(true);
@@ -133,6 +143,28 @@ export default function Teams({ initialSelectedTeam = null }) {
       await api.del(`/tasks/${taskId}/`);
       if (selectedTeam) fetchTasksForTeam(selectedTeam);
     } catch (err) { console.error(err); alert('No se pudo eliminar la tarea'); }
+  }
+
+  async function handleCompleteTask(taskId) {
+    try {
+      const now = new Date().toISOString();
+      await api.patch(`/tasks/${taskId}/`, {
+        completed_at: now,
+        completed_by: currentUser?.id
+      });
+      if (selectedTeam) fetchTasksForTeam(selectedTeam);
+      showToast('Tarea marcada como completada');
+    } catch (err) {
+      console.error(err);
+      showToast('No se pudo completar la tarea', 'error');
+    }
+  }
+
+  function canCompleteTask(task) {
+    if (!currentUser) return false;
+    if (task.completed_at) return false;
+    if (!task.asignado_a) return true;
+    return task.asignado_a === currentUser.id || isCurrentUserAdmin(task.team);
   }
 
   async function fetchDocsForTask(taskId) {
@@ -292,62 +324,124 @@ export default function Teams({ initialSelectedTeam = null }) {
 
                 <div className={`team-tasks-panel ${selectedTeam===t.id ? 'open':''}`}>
                   {selectedTeam === t.id && (
-                    <div style={{padding:8}}>
-                      <h4>Tareas</h4>
-                      {/* Document upload area: allow uploading to the selected task or to the team */}
-                      <div style={{marginBottom:8}}>
-                        {selectedTask ? (
-                          <DocumentsUpload taskId={selectedTask.id} onUploaded={() => fetchDocsForTask(selectedTask.id)} />
-                        ) : (
-                          <DocumentsUpload teamId={t.id} onUploaded={() => fetchTasksForTeam(t.id)} />
-                        )}
+                    <div style={{padding:8, display: 'flex', flexDirection: 'column', height: '600px'}}>
+                      {/* Tabs */}
+                      <div style={{display: 'flex', gap: '12px', borderBottom: '2px solid #e5e7eb', marginBottom: '12px'}}>
+                        <button 
+                          onClick={() => setActiveTab('tareas')}
+                          style={{
+                            padding: '8px 16px',
+                            background: activeTab === 'tareas' ? 'var(--primary)' : 'transparent',
+                            color: activeTab === 'tareas' ? '#fff' : 'var(--muted)',
+                            border: 'none',
+                            borderRadius: '6px 6px 0 0',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            transition: 'all 200ms ease'
+                          }}
+                        >
+                          <i className="fas fa-tasks" style={{marginRight: '6px'}}></i>Tareas
+                        </button>
+                        <button 
+                          onClick={() => setActiveTab('chat')}
+                          style={{
+                            padding: '8px 16px',
+                            background: activeTab === 'chat' ? 'var(--primary)' : 'transparent',
+                            color: activeTab === 'chat' ? '#fff' : 'var(--muted)',
+                            border: 'none',
+                            borderRadius: '6px 6px 0 0',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            transition: 'all 200ms ease'
+                          }}
+                        >
+                          <i className="fas fa-comments" style={{marginRight: '6px'}}></i>Chat
+                        </button>
                       </div>
-                      { (teamTasksByTeam[t.id] || []).length === 0 ? <p>No hay tareas</p> : (
-                        (teamTasksByTeam[t.id] || []).map(task => (
-                          <div key={task.id} className="task-card" onClick={() => { setSelectedTask(task); fetchDocsForTask(task.id); }}>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems: 'center'}}>
-                              <div style={{flex:1}}>
-                                <div><strong>{task.titulo}</strong></div>
-                                <div className="muted">{task.fecha_vencimiento ? new Date(task.fecha_vencimiento).toLocaleString() : ''}</div>
-                                <div>{task.descripcion}</div>
-                              </div>
 
-                              {/* task admin controls */}
-                              {isCurrentUserAdmin(t.id) && (
-                                <div style={{display:'flex', flexDirection:'column', gap:6, marginLeft:12}} onClick={(ev) => ev.stopPropagation()}>
-                                  {editingTaskId === task.id ? (
-                                    <form onSubmit={handleSubmitEditTask} className="edit-task-form">
-                                      <input value={editTaskForm.titulo} onChange={e => setEditTaskForm({...editTaskForm, titulo: e.target.value})} placeholder="Título" />
-                                      <input value={editTaskForm.descripcion} onChange={e => setEditTaskForm({...editTaskForm, descripcion: e.target.value})} placeholder="Descripción" />
-                                      <button type="submit">Guardar</button>
-                                      <button type="button" onClick={() => handleCancelEditTask()}>Cancelar</button>
-                                    </form>
-                                  ) : (
-                                    <>
-                                      <button className="btn btn-small" onClick={() => handleStartEditTask(task)}>Editar</button>
-                                      <button className="btn btn-danger btn-small" onClick={() => handleDeleteTask(task.id)}>Eliminar</button>
-                                    </>
-                                  )}
-                                </div>
+                      {/* Tab Content */}
+                      <div style={{flex: 1, overflow: 'hidden'}}>
+                        {/* Tareas Tab */}
+                        {activeTab === 'tareas' && (
+                          <div style={{display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden'}}>
+                            {/* Document upload area */}
+                            <div style={{marginBottom:8}}>
+                              {selectedTask ? (
+                                <DocumentsUpload taskId={selectedTask.id} onUploaded={() => fetchDocsForTask(selectedTask.id)} />
+                              ) : (
+                                <DocumentsUpload teamId={t.id} onUploaded={() => fetchTasksForTeam(t.id)} />
+                              )}
+                            </div>
+                            <div style={{flex: 1, overflowY: 'auto'}}>
+                              { (teamTasksByTeam[t.id] || []).length === 0 ? <p>No hay tareas</p> : (
+                                (teamTasksByTeam[t.id] || []).map(task => (
+                                  <div key={task.id} className="task-card" onClick={() => { setSelectedTask(task); fetchDocsForTask(task.id); }} style={{marginBottom: '8px'}}>
+                                    <div style={{display:'flex', justifyContent:'space-between', alignItems: 'center'}}>
+                                      <div style={{flex:1}}>
+                                        <div><strong>{task.titulo}</strong> {task.completed_at && <span style={{color: 'green', fontSize: '0.85rem'}}>✓ Completada</span>}</div>
+                                        <div className="muted">{task.fecha_vencimiento ? new Date(task.fecha_vencimiento).toLocaleString() : ''}</div>
+                                        <div>{task.descripcion}</div>
+                                        {task.asignado_a && <div className="muted">Asignado a: {task.asignado_usuario}</div>}
+                                      </div>
+
+                                      <div style={{display:'flex', flexDirection:'column', gap:4, marginLeft:12, alignItems: 'flex-end'}} onClick={(ev) => ev.stopPropagation()}>
+                                        {canCompleteTask(task) && !task.completed_at && (
+                                          <button 
+                                            className="btn btn-small btn-success"
+                                            onClick={() => handleCompleteTask(task.id)}
+                                            title="Marcar como completada"
+                                            style={{padding: '4px 8px', fontSize: '0.8rem'}}
+                                          >
+                                            <i className="fas fa-check"></i> Completar
+                                          </button>
+                                        )}
+                                        {isCurrentUserAdmin(t.id) && (
+                                          <>
+                                            {editingTaskId === task.id ? (
+                                              <form onSubmit={handleSubmitEditTask} className="edit-task-form" style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                                                <input value={editTaskForm.titulo} onChange={e => setEditTaskForm({...editTaskForm, titulo: e.target.value})} placeholder="Título" style={{padding: '4px 6px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #ccc'}} />
+                                                <input value={editTaskForm.descripcion} onChange={e => setEditTaskForm({...editTaskForm, descripcion: e.target.value})} placeholder="Descripción" style={{padding: '4px 6px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #ccc'}} />
+                                                <div style={{display: 'flex', gap: '4px'}}>
+                                                  <button type="submit" className="btn btn-small" style={{flex: 1, background: 'var(--primary)', color: '#fff', fontWeight: '600', fontSize: '0.75rem', padding: '4px'}}>Guardar</button>
+                                                  <button type="button" className="btn btn-small btn-ghost" onClick={() => handleCancelEditTask()} style={{flex: 1, fontSize: '0.75rem', padding: '4px'}}>Cancelar</button>
+                                                </div>
+                                              </form>
+                                            ) : (
+                                              <>
+                                                <button className="btn btn-small" onClick={() => handleStartEditTask(task)} style={{background: 'var(--primary)', color: '#fff', fontWeight: '600', fontSize: '0.75rem', padding: '4px 6px'}}><i className="fas fa-edit"></i> Editar</button>
+                                                <button className="btn btn-danger btn-small" onClick={() => handleDeleteTask(task.id)} style={{background: '#b91c1c', color: '#fff', fontWeight: '600', fontSize: '0.75rem', padding: '4px 6px'}}><i className="fas fa-trash-alt"></i> Eliminar</button>
+                                              </>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+
+                                    </div>
+                                  </div>
+                                ))
                               )}
 
+                              {selectedTask && selectedTask.team === t.id && (
+                                <div style={{marginTop:8, padding: '8px', backgroundColor: '#f0f0f0', borderRadius: '4px'}}>
+                                  <button className="nav-btn" onClick={() => setSelectedTask(null)} style={{fontSize: '0.8rem', padding: '4px 8px'}}>Cerrar</button>
+                                  <h5 style={{margin: '4px 0 2px 0', fontSize: '0.9rem'}}>{selectedTask.titulo}</h5>
+                                  <p style={{margin: '2px 0', fontSize: '0.85rem'}}>{selectedTask.descripcion}</p>
+                                  <div style={{fontSize: '0.8rem'}}>
+                                    {(taskDocs[selectedTask.id] || []).map(d => (
+                                      <div key={d.id}><a href={d.archivo} target="_blank" rel="noreferrer" style={{color: 'var(--primary)', fontSize: '0.75rem'}}>{d.nombre || d.archivo}</a></div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        ))
-                      )}
+                        )}
 
-                      {selectedTask && selectedTask.team === t.id && (
-                        <div style={{marginTop:8}} className="panel">
-                          <button className="nav-btn" onClick={() => setSelectedTask(null)}>Cerrar</button>
-                          <h5>{selectedTask.titulo}</h5>
-                          <p>{selectedTask.descripcion}</p>
-                          <div>
-                            {(taskDocs[selectedTask.id] || []).map(d => (
-                              <div key={d.id}><a href={d.archivo} target="_blank" rel="noreferrer">{d.nombre || d.archivo}</a></div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        {/* Chat Tab */}
+                        {activeTab === 'chat' && (
+                          <Chat teamId={t.id} />
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -361,14 +455,6 @@ export default function Teams({ initialSelectedTeam = null }) {
             <div className="panel">
               <button className="nav-btn" onClick={closeTeam}>Volver</button>
               <h3>Detalles del equipo</h3>
-              <div style={{marginTop:8}}>
-                {(teamTasksByTeam[selectedTeam] || []).map(task => (
-                  <div key={task.id} className="task-card" onClick={() => { setSelectedTask(task); fetchDocsForTask(task.id); }}>
-                    <strong>{task.titulo}</strong>
-                    <div>{task.descripcion}</div>
-                  </div>
-                ))}
-              </div>
               <div style={{marginTop:12}}>
                 <h4>Calendario (eventos del equipo)</h4>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>

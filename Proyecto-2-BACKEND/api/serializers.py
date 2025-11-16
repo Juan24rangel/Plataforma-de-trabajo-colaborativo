@@ -82,10 +82,12 @@ class TagSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     etiquetas = TagSerializer(many=True, read_only=True)
+    completed_by_username = serializers.CharField(source='completed_by.username', read_only=True)
 
     class Meta:
         model = Task
-        fields = ['id', 'titulo', 'descripcion', 'creador', 'asignado', 'team', 'estado', 'prioridad', 'etiquetas', 'fecha_vencimiento', 'created_at', 'updated_at']
+        fields = ['id', 'titulo', 'descripcion', 'creador', 'asignado', 'team', 'estado', 'prioridad', 'etiquetas', 'fecha_vencimiento', 'created_at', 'updated_at', 'completed_by', 'completed_by_username', 'completed_at']
+        read_only_fields = ['creador', 'completed_by', 'completed_at']
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -108,9 +110,10 @@ class ChannelSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
     class Meta:
         model = Message
-        fields = ['id', 'channel', 'sender', 'contenido', 'created_at']
+        fields = ['id', 'channel', 'sender', 'sender_username', 'contenido', 'created_at']
 
 
 class GoogleCredentialSerializer(serializers.ModelSerializer):

@@ -24,6 +24,7 @@ router.register(r'messages', views.MessageViewSet)
 
 urlpatterns += [
     path('', include(router.urls)),
+    path('user/', views.CurrentUserView.as_view(), name='current-user'),
     path('admin/stats/', views.AdminStatsView.as_view(), name='admin-stats'),
     path('calendar/connect/', views.CalendarConnectView.as_view(), name='calendar-connect'),
     path('calendar/callback/', views.CalendarCallbackView.as_view(), name='calendar-callback'),
