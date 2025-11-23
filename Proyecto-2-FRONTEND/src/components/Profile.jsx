@@ -47,9 +47,43 @@ const Profile = () => {
     }
   }, [previewSrc]);
 
-  if (loading) return <div className="loading">Cargando perfil...</div>;
-  if (error) return <div className="error">Error al cargar perfil: {typeof error === 'string' ? error : JSON.stringify(error)}</div>;
-  if (!profile) return <div className="empty">No hay perfil disponible.</div>;
+  if (loading) return (
+    <div className="profile-container">
+      <div className="loading-card">
+        <div className="loading-shimmer" style={{width: '100%', height: '300px', borderRadius: '16px'}}></div>
+        <p style={{textAlign: 'center', marginTop: '20px', color: 'var(--text-muted)'}}>⏳ Cargando perfil...</p>
+      </div>
+    </div>
+  );
+  if (error) return (
+    <div className="profile-container">
+      <div className="error-card" style={{
+        padding: '40px',
+        background: 'var(--card)',
+        borderRadius: 'var(--radius)',
+        border: '1px solid var(--danger)',
+        textAlign: 'center'
+      }}>
+        <div style={{fontSize: '3rem', marginBottom: '16px'}}>⚠️</div>
+        <h3 style={{color: 'var(--danger)', marginBottom: '12px'}}>Error al cargar perfil</h3>
+        <p style={{color: 'var(--text-muted)'}}>{typeof error === 'string' ? error : JSON.stringify(error)}</p>
+      </div>
+    </div>
+  );
+  if (!profile) return (
+    <div className="profile-container">
+      <div className="empty-card" style={{
+        padding: '40px',
+        background: 'var(--card)',
+        borderRadius: 'var(--radius)',
+        border: '1px solid var(--border)',
+        textAlign: 'center'
+      }}>
+        <div style={{fontSize: '3rem', marginBottom: '16px'}}>👤</div>
+        <h3 style={{color: 'var(--text-muted)'}}>No hay perfil disponible</h3>
+      </div>
+    </div>
+  );
 
   // resolve foto URL
   let fotoSrc = null;
@@ -95,20 +129,43 @@ const Profile = () => {
 
             {editing ? (
           <div className="profile-edit">
+            <h3 style={{
+              margin: '0 0 20px 0',
+              background: 'var(--gradient-primary)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontSize: '1.5rem',
+              fontWeight: 800
+            }}>✏️ Editar Perfil</h3>
             <div className="form-row">
-              <label>Nombre</label>
-              <input value={form.nombre} onChange={(e) => setForm({...form, nombre: e.target.value})} />
+              <label>👤 Nombre</label>
+              <input 
+                type="text"
+                value={form.nombre} 
+                onChange={(e) => setForm({...form, nombre: e.target.value})}
+                placeholder="Tu nombre completo"
+              />
             </div>
             <div className="form-row">
-              <label>Bio</label>
-              <textarea value={form.bio} onChange={(e) => setForm({...form, bio: e.target.value})} />
+              <label>📝 Bio / Acerca de</label>
+              <textarea 
+                value={form.bio} 
+                onChange={(e) => setForm({...form, bio: e.target.value})}
+                placeholder="Cuéntanos sobre ti, tus intereses, experiencia..."
+              />
             </div>
             <div className="form-row">
-              <label>Cargo</label>
-              <input value={form.cargo} onChange={(e) => setForm({...form, cargo: e.target.value})} />
+              <label>💼 Cargo</label>
+              <input 
+                type="text"
+                value={form.cargo} 
+                onChange={(e) => setForm({...form, cargo: e.target.value})}
+                placeholder="Tu posición o título"
+              />
             </div>
             <div className="form-row">
-              <label>Foto de perfil</label>
+              <label>📷 Foto de perfil</label>
               <input type="file" accept="image/*" onChange={(e) => {
                 const f = e.target.files && e.target.files[0];
                 if (f) {
@@ -140,18 +197,26 @@ const Profile = () => {
                   // use upload which sends multipart POST
                   const res = await api.upload('/profiles/update_me/', fd);
                   setProfile(res);
+                  setForm({ nombre: res.nombre || '', bio: res.bio || '', cargo: res.cargo || '' });
+                  setFotoFile(null);
+                  setPreviewSrc(null);
                   setEditing(false);
                 } catch (err) {
                   alert('Error al actualizar perfil: ' + JSON.stringify(err));
                 }
-              }}>Guardar</button>
-              <button className="btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
+              }}>💾 Guardar Cambios</button>
+              <button className="btn-ghost" onClick={() => {
+                setEditing(false);
+                setForm({ nombre: profile.nombre || '', bio: profile.bio || '', cargo: profile.cargo || '' });
+                setFotoFile(null);
+                setPreviewSrc(null);
+              }}>❌ Cancelar</button>
             </div>
           </div>
             ) : (
               <div className="profile-body">
                 <h4>Acerca de</h4>
-                <p>{profile.bio || 'SIN descripción'}</p>
+                <p>{profile.bio || 'Sin descripción disponible. Haz clic en "Editar perfil" para añadir información sobre ti.'}</p>
               </div>
             )}
           </div>
@@ -162,18 +227,12 @@ const Profile = () => {
                 <h4>Equipos</h4>
                 <div className="team-cards">
                   {profile.teams.map(t => (
-                    <div key={t.id} className="team-card-small" style={{cursor:'pointer'}} onClick={() => {
-                      try { window.history.pushState({}, '', `/teams/${t.id}`); window.dispatchEvent(new PopStateEvent('popstate')); } catch(e){}
-                    }}>
+                    <div className="team-card-small" key={t.id}>
                       <div className="team-card-head">
                         <div className="team-name">{t.nombre}</div>
                         <div className="team-role">{t.role}</div>
                       </div>
                       <div className="team-desc">{t.descripcion}</div>
-                      {/* show team code if present */}
-                      { (t.codigo || t.code || t.slug) && (
-                        <div className="team-code muted" style={{marginTop:8,fontSize:'0.95rem'}}>Código: {t.codigo || t.code || t.slug}</div>
-                      )}
                       <div className="team-owner muted">Owner: {t.owner_username}</div>
                     </div>
                   ))}

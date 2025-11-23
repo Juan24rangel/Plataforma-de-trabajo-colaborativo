@@ -9,7 +9,7 @@ from rest_framework import serializers as drf_serializers
 from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from rest_framework.decorators import action
-from .permissions import IsTeamAdmin
+from .permissions import IsTeamAdmin, RoleBasedPermission
 from django.shortcuts import get_object_or_404
 import os
 from django.conf import settings
@@ -29,7 +29,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     serializer_class = TeamSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['nombre']
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def get_queryset(self):
         # Return only teams the user belongs to or owns. Anonymous users see none.
@@ -53,6 +53,11 @@ class TeamViewSet(viewsets.ModelViewSet):
         # Create membership as admin for owner
         if user:
             Membership.objects.create(user=user, team=team, role='admin')
+        # Create default channel for the team
+        try:
+            Channel.objects.create(nombre=f'general', team=team, is_private=False)
+        except Exception:
+            pass  # silently fail if channel creation has issues
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def stats(self, request, pk=None):
@@ -185,6 +190,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['titulo', 'descripcion']
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def get_queryset(self):
         """
@@ -227,6 +233,29 @@ class TaskViewSet(viewsets.ModelViewSet):
         # Asignar el creador al usuario logueado si no se provee
         user = self.request.user if self.request and self.request.user.is_authenticated else None
         serializer.save(creador=user)
+
+    def partial_update(self, request, *args, **kwargs):
+        """When a task's estado is set to 'done', record the user and timestamp."""
+        instance = self.get_object()
+        data = request.data or {}
+        estado = data.get('estado', None)
+        # call the standard behavior first to validate input
+        resp = super().partial_update(request, *args, **kwargs)
+        try:
+            if estado == 'done':
+                instance.completed_by = request.user
+                import django.utils.timezone as timezone
+                instance.completed_at = timezone.now()
+                instance.save(update_fields=['completed_by', 'completed_at'])
+            else:
+                # If resetting estado, clear completion metadata
+                if instance.completed_by or instance.completed_at:
+                    instance.completed_by = None
+                    instance.completed_at = None
+                    instance.save(update_fields=['completed_by', 'completed_at'])
+        except Exception:
+            pass
+        return resp
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -316,6 +345,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def perform_create(self, serializer):
         user = self.request.user if self.request and self.request.user.is_authenticated else None
@@ -409,17 +439,30 @@ class DocumentViewSet(viewsets.ModelViewSet):
 class ChannelViewSet(viewsets.ModelViewSet):
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
+
+    def get_queryset(self):
+        team_id = self.request.query_params.get('team')
+        if team_id:
+            return self.queryset.filter(team_id=team_id)
+        return self.queryset
 
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, RoleBasedPermission]
 
     def get_queryset(self):
         channel_id = self.request.query_params.get('channel')
         if channel_id:
             return self.queryset.filter(channel_id=channel_id)
         return self.queryset
+
+    def perform_create(self, serializer):
+        # Ensure sender is the authenticated user (server-side authority)
+        user = self.request.user if self.request and self.request.user.is_authenticated else None
+        serializer.save(sender=user)
 
 
 from rest_framework.views import APIView
@@ -657,3 +700,20 @@ class CalendarPublishView(APIView):
             return Response({'detail': 'Event created', 'event': created})
         except Exception as e:
             return Response({'detail': f'Error creating event: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Get current user information
+from rest_framework.views import APIView
+
+class CurrentUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        })

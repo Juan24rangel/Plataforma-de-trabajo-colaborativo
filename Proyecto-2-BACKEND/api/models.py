@@ -57,11 +57,17 @@ class Task(models.Model):
         ('pending', 'Pendiente'),
         ('in_progress', 'En progreso'),
         ('done', 'Completada'),
+        ('overdue', 'Retrasada'),
     )
     PRIORITY_CHOICES = (
         ('low', 'Baja'),
         ('medium', 'Media'),
         ('high', 'Alta'),
+    )
+    TIPO_CHOICES = (
+        ('file_upload', 'Subir Archivo'),
+        ('meeting', 'Reunión Programada'),
+        ('general', 'General'),
     )
     titulo = models.CharField(max_length=255)
     descripcion = models.TextField(blank=True)
@@ -70,6 +76,7 @@ class Task(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True, related_name='tasks')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pending')
     prioridad = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='general')
     etiquetas = models.ManyToManyField(Tag, blank=True)
     fecha_vencimiento = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -31,6 +31,16 @@ Instalación y ejecución (Frontend)
    npm run dev
    Abrir: http://localhost:5173
 
+Nota sobre PostCSS & Tailwind v4:
+- Si ves un error parecido a "It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin...", instala e incluye el plugin PostCSS de Tailwind:
+
+```powershell
+cd Proyecto-2-FRONTEND
+npm install @tailwindcss/postcss --save-dev
+```
+
+Y actualiza (o confirma) `postcss.config.cjs` para usar `require('@tailwindcss/postcss')` en lugar de `require('tailwindcss')` si tu Tailwind es v4.
+
 Variables de entorno (frontend)
 - VITE_API_URL — base de la API, por defecto `http://localhost:8000/api`
 

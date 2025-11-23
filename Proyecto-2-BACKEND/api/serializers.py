@@ -85,7 +85,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ['id', 'titulo', 'descripcion', 'creador', 'asignado', 'team', 'estado', 'prioridad', 'etiquetas', 'fecha_vencimiento', 'created_at', 'updated_at']
+        fields = ['id', 'titulo', 'descripcion', 'creador', 'asignado', 'team', 'estado', 'prioridad', 'tipo', 'etiquetas', 'fecha_vencimiento', 'created_at', 'updated_at']
 
 
 class EventSerializer(serializers.ModelSerializer):
